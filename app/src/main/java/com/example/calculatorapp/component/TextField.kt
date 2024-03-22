@@ -18,7 +18,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.calculatorapp.CalculatorUiState
+import com.example.calculatorapp.presentation.CalculatorUiState
 import java.util.Locale
 
 @Composable

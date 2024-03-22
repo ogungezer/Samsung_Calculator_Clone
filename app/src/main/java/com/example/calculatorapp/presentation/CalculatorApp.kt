@@ -1,6 +1,5 @@
-package com.example.calculatorapp
+package com.example.calculatorapp.presentation
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

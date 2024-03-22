@@ -13,8 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.calculatorapp.OperationEvent
-import com.example.calculatorapp.OperationType
+import com.example.calculatorapp.presentation.OperationEvent
+import com.example.calculatorapp.presentation.OperationType
 
 @Composable
 fun ButtonGrid(onEvent : (OperationEvent) -> Unit){

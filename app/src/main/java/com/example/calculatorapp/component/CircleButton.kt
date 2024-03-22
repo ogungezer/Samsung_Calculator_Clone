@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.calculatorapp.CalculatorViewModel
+import com.example.calculatorapp.presentation.CalculatorViewModel
 import com.example.calculatorapp.ui.theme.CalculatorAppTheme
 import com.example.calculatorapp.ui.theme.LightNumberColor
 import com.example.calculatorapp.ui.theme.LightWhiteButton

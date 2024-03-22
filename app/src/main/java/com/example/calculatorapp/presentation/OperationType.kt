@@ -1,4 +1,4 @@
-package com.example.calculatorapp
+package com.example.calculatorapp.presentation
 
 sealed class OperationType(val symbol : String){
     object Addition : OperationType(symbol = "+")

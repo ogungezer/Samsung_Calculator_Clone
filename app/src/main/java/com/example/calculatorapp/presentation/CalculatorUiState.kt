@@ -1,6 +1,7 @@
-package com.example.calculatorapp
+package com.example.calculatorapp.presentation
 
 import com.example.calculatorapp.data.locale.Operation
+import com.example.calculatorapp.presentation.OperationType
 
 
 data class CalculatorUiState(

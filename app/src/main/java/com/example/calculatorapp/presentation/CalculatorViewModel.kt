@@ -1,4 +1,4 @@
-package com.example.calculatorapp
+package com.example.calculatorapp.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

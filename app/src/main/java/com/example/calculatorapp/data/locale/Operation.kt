@@ -2,7 +2,6 @@ package com.example.calculatorapp.data.locale
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.calculatorapp.OperationType
 
 @Entity
 data class Operation(

@@ -1,12 +1,6 @@
 package com.example.calculatorapp.component
 
 import android.widget.Toast
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.InfiniteRepeatableSpec
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -23,12 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.calculatorapp.OperationEvent
 import com.example.calculatorapp.OperationType
-import com.example.calculatorapp.ui.theme.LightGrayButton
-import com.example.calculatorapp.ui.theme.LightGreenButton
-import com.example.calculatorapp.ui.theme.LightGreenOnButton
-import com.example.calculatorapp.ui.theme.LightNumberColor
-import com.example.calculatorapp.ui.theme.LightRedOnButton
-import com.example.calculatorapp.ui.theme.LightWhiteButton
 
 @Composable
 fun ButtonGrid(onEvent : (OperationEvent) -> Unit){

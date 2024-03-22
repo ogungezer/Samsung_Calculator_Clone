@@ -1,6 +1,5 @@
 package com.example.calculatorapp
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.calculatorapp.data.locale.Operation

@@ -1,8 +1,6 @@
 package com.example.calculatorapp
 
 import com.example.calculatorapp.data.locale.Operation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
 
 data class CalculatorUiState(

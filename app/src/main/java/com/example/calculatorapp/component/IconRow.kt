@@ -22,8 +22,6 @@ import com.example.calculatorapp.CalculatorUiState
 import com.example.calculatorapp.CalculatorViewModel
 import com.example.calculatorapp.OperationEvent
 import com.example.calculatorapp.R
-import com.example.calculatorapp.ui.theme.LightBackspaceColor
-import com.example.calculatorapp.ui.theme.LightDisabledBackspaceColor
 
 @Composable
 fun IconRow(

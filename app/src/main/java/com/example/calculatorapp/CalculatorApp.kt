@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,9 +29,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calculatorapp.component.ButtonGrid
 import com.example.calculatorapp.component.CustomText
+import com.example.calculatorapp.component.HistoryList
 import com.example.calculatorapp.component.IconRow
 import com.example.calculatorapp.ui.theme.DarkBackGround
 import com.example.calculatorapp.ui.theme.LightBackGround
+import java.util.Locale
 
 @Composable
 fun CalculatorApp() {
@@ -37,6 +41,14 @@ fun CalculatorApp() {
     val viewModel : CalculatorViewModel = viewModel()
     val state = viewModel.uiState.collectAsState().value
     val context = LocalContext.current
+
+    val result = if(state.result?.isNotBlank() == true){
+        String.format(Locale.GERMANY, "%,d", state.result.split(',').getOrElse(0){""}.toBigIntegerOrNull()) + (if(state.result.contains(",")) "," else "") +
+            state.result.split(',').getOrElse(1){""}
+    } else {
+        state.result
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,14 +59,14 @@ fun CalculatorApp() {
             .fillMaxWidth()
         ){
             CustomText(state = state)
-            state.result?.let {
+            result?.let {
                 Text(
-                    text = if(state.result - state.result.toInt() == 0.0) state.result.toInt().toString() else state.result.toString().replace(".",","),
-                    fontSize = 30.sp,
+                    text = result,
+                    fontSize = if(result.length > 9) 18.sp else 24.sp,
                     color = MaterialTheme.colorScheme.surfaceTint,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 36.dp, bottom = 120.dp)
+                        .padding(end = 36.dp, bottom = 120.dp, start = 20.dp)
                 )
             }
             Box(modifier = Modifier
@@ -75,11 +87,20 @@ fun CalculatorApp() {
 
         Box(modifier = Modifier
             .weight(1.6f)
-            .padding(16.dp)
-            .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            .fillMaxWidth()
         ){
-            ButtonGrid(viewModel::onEvent)
+            Box(contentAlignment = Alignment.Center){
+                ButtonGrid(viewModel::onEvent)
+            }
+            if(state.isHistoryTabOpen){
+                println("tab açıldı")
+                HistoryList(viewModel::onEvent)
+            }
+        }
+
+
+        if(state.isShowingToast && !state.isTwoDeleted){ //2.sayıyı sildikten sonra operatörü silerken mesaj çıkmasın diye isTwoDeleted'e de bakıyor.
+            Toast.makeText(context, "En fazla 15 hane girilebilir.", Toast.LENGTH_SHORT).show()
         }
     }
 }

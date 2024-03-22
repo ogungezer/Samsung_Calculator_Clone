@@ -1,24 +1,31 @@
 package com.example.calculatorapp
 
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.calculatorapp.data.locale.Operation
+import com.example.calculatorapp.domain.repository.OperationRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.text.DecimalFormat
-import kotlin.math.absoluteValue
-import kotlin.math.nextDown
-import kotlin.math.pow
-import kotlin.math.roundToInt
-import kotlin.math.roundToLong
+import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.math.RoundingMode
+import javax.inject.Inject
 
-class CalculatorViewModel : ViewModel() {
+//Repoyu viewmodelde uygulama işi kaldı. Repodaki metodları kullanıcaz viewmodelde sonrasında ui de list şeklinde getOperations çağırıcaz.
+@HiltViewModel
+class CalculatorViewModel @Inject constructor(private val repo : OperationRepository) : ViewModel() {
 
     private var _uiState = MutableStateFlow(CalculatorUiState())
     val uiState : StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
+
+    init {
+        fetchHistoryDataInit()
+    }
 
     fun onEvent(event: OperationEvent){
         when(event){
@@ -29,108 +36,187 @@ class CalculatorViewModel : ViewModel() {
             is OperationEvent.Decimal -> decimalExecute()
             is OperationEvent.EnterNumber -> enterNumberExecute(event.number)
             is OperationEvent.Operation -> operationExecute(event.operationType)
+            is OperationEvent.OpenHistory -> historyExecute()
+            is OperationEvent.ClearHistory -> clearHistoryExecute()
+        }
+    }
+
+    private fun clearHistoryExecute() {
+        viewModelScope.launch {
+            repo.deleteOperations()
+            _uiState.update { it.copy(isHistoryTabOpen = false)}
+        }
+
+    }
+
+    private fun fetchHistoryDataInit(){
+        viewModelScope.launch {
+            repo.getOperations().collect{ historyList ->
+                _uiState.update { it.copy(historyOperationList = historyList ) }
+            }
+        }
+    }
+
+    private fun historyExecute() {
+        if(uiState.value.isHistoryTabOpen){
+            viewModelScope.launch {
+                repo.getOperations().collect{ historyList ->
+                    _uiState.update { it.copy(historyOperationList = historyList ) }
+                }
+            }
         }
     }
 
     private fun operationExecute(operationType: OperationType) {
         if(uiState.value.numberOne.isNotBlank() && uiState.value.operation == null){
-           _uiState.update { it.copy(operation = operationType)}
+           _uiState.update { it.copy(operation = operationType, operationSymbol = operationType.symbol)}
         }
     }
 
     private fun enterNumberExecute(number: Int) {
         if(uiState.value.operation == null){
-            _uiState.update { it.copy(numberOne = uiState.value.numberOne + number) }
+            if(uiState.value.numberOne.length > 14){
+               return
+            } else {
+                _uiState.update { it.copy(numberOne = uiState.value.numberOne + number) }
+            }
         } else {
-            _uiState.update { it.copy(numberTwo = uiState.value.numberTwo + number) }
-            printResult()
+            if(uiState.value.numberTwo.length > 14){
+               return
+            } else {
+                _uiState.update { it.copy(numberTwo = uiState.value.numberTwo + number) }
+                printResult()
+            }
         }
     }
 
     private fun printResult() { //light gray result (bottom one)
-        val numberOne = uiState.value.numberOne.toDoubleOrNull()
-        val numberTwo = uiState.value.numberTwo.toDoubleOrNull()
+        val numberOne = uiState.value.numberOne.replace(',','.').toBigDecimalOrNull()
+        val numberTwo = uiState.value.numberTwo.replace(',','.').toBigDecimalOrNull()
         if(numberOne != null && uiState.value.operation != null && numberTwo != null){
             val result = when(uiState.value.operation){
                 OperationType.Addition -> {
-                    numberOne + numberTwo
+                    (numberOne + numberTwo).toEngineeringString().replace('.',',')
                 }
                 OperationType.Division -> {
-                    numberOne / numberTwo
+                    if(numberTwo == BigDecimal.ZERO){
+                        return
+                    } else {
+                        (numberOne.divide(numberTwo,4,RoundingMode.HALF_UP)).toEngineeringString().replace('.',',')
+
+                    }
                 }
                 OperationType.Mod -> {
-                    numberOne % numberTwo
+                   (numberOne % numberTwo).toEngineeringString().replace('.',',')
                 }
                 OperationType.Multiply -> {
-                    numberOne * numberTwo
+                    (numberOne * numberTwo).toEngineeringString().replace('.',',')
                 }
                 OperationType.Subtraction -> {
-                    numberOne - numberTwo
+                    (numberOne - numberTwo).toEngineeringString().replace('.',',')
                 }
                 null -> return
             }
-            println(result.toString()) //result
-            val decimal = result.toString().split('.').getOrElse(1){""} //
-            println("Ondalık kısım: $decimal")
-            val decimalCount = decimal.length
-            println("Sıfır sayısı : $decimalCount")
-            if(decimalCount > 6){
-                if(decimal.count{ it == '0'} > 4){
-                    _uiState.update { it.copy(result = String.format("%.4f", result).toDouble())} //
-                } else {
-                    _uiState.update { it.copy(result = DecimalFormat("#,###.##").format(result).toDouble())} //
-                }
+            if((result.replace(',','.').toDouble() - result.replace(',','.').split('.').getOrElse(0){""}.toDouble()) == 0.0){
+                _uiState.update { it.copy(result = result.split(',').getOrElse(0){""})} //HATA BURDA BAK
             } else {
-                _uiState.update { it.copy(result = result)}
+                //println(result)
+                val decimal = result.split(',').getOrElse(1) { "" }
+                val integer = result.split(',').getOrElse(0) { "" }//
+                //println("Ondalık kısım: $decimal")
+                //println("Int kısım: $integer")
+                val decimalCount = decimal.length
+                //println("Sıfır sayısı : $decimalCount")
+                if (decimalCount > 4) {
+                    if (decimal.count { it == '0' } > 4) {
+                        _uiState.update { it.copy(result = "$integer,${decimal.take(2)}") } //
+                    } else {
+                        _uiState.update { it.copy(result = "$integer,${decimal}") } //
+                    }
+                } else {
+                    _uiState.update { it.copy(result = "$integer,${decimal}") }
+                }
             }
         }
     }
 
     private fun decimalExecute() {
-        if(uiState.value.operation == null && !uiState.value.numberOne.contains(",") && uiState.value.numberOne.isNotBlank()){
-            _uiState.update { it.copy(numberOne = uiState.value.numberOne + "," )}
+        if(uiState.value.operation == null && !uiState.value.numberOne.contains(',') && uiState.value.numberOne.isNotBlank()){
+            _uiState.update { it.copy(numberOne = uiState.value.numberOne + ',' )}
             return
         }
-        if(uiState.value.operation != null && !uiState.value.numberTwo.contains(",") && uiState.value.numberTwo.isNotBlank()){
-            _uiState.update { it.copy(numberTwo = uiState.value.numberTwo + ",") }
+        if(uiState.value.operation != null && !uiState.value.numberTwo.contains(',') && uiState.value.numberTwo.isNotBlank()){
+            _uiState.update { it.copy(numberTwo = uiState.value.numberTwo + ',') }
         }
     }
 
     private fun calculateExecute() {
-        val numberOne = uiState.value.numberOne.replace(",",".").toDoubleOrNull()
-        val numberTwo = uiState.value.numberTwo.replace(",",".").toDoubleOrNull()
-        if(numberOne != null && uiState.value.operation != null && numberTwo != null){
-            val result = when(uiState.value.operation){
-                OperationType.Addition -> {
-                    numberOne + numberTwo
-                }
-                OperationType.Division -> {
-                    numberOne / numberTwo
-                }
-                OperationType.Mod -> {
-                    numberOne % numberTwo
-                }
-                OperationType.Multiply -> {
-                    numberOne * numberTwo
-                }
-                OperationType.Subtraction -> {
-                    numberOne - numberTwo
-                }
-                null -> return
-            }
-            if((result - result.toInt()) == 0.0){
-                _uiState.update { it.copy(result = null, numberOne = result.toInt().toString(), numberTwo = "", operation = null)}
-            } else {
-                val decimal = result.toString().split(",").getOrElse(1){""}
-                val decimalCount = decimal.length
-                if(decimalCount > 6){
-                    if(decimal.count{ it == '0'} > 4){
-                        _uiState.update { it.copy(result = null, numberOne = String.format("%,2f", result), numberTwo = "", operation = null)}
-                    } else {
-                        _uiState.update { it.copy(result = null, numberOne = String.format("%,4f", result), numberTwo = "", operation = null)}
+        viewModelScope.launch {
+            val numberOne = uiState.value.numberOne.replace(',','.').toBigDecimalOrNull()
+            val numberTwo = uiState.value.numberTwo.replace(',','.').toBigDecimalOrNull()
+            if(numberOne != null && uiState.value.operation != null && numberTwo != null){
+                val result = when(uiState.value.operation){
+                    OperationType.Addition -> {
+                        (numberOne + numberTwo).toString().replace('.',',')
                     }
+                    OperationType.Division -> {
+                        if(numberTwo == BigDecimal.ZERO){
+                            return@launch
+                        } else {
+                            (numberOne.divide(numberTwo,4,RoundingMode.HALF_UP)).toEngineeringString().replace('.',',')
+
+                        }
+                    }
+                    OperationType.Mod -> {
+                        (numberOne % numberTwo).toString().replace('.',',')
+                    }
+                    OperationType.Multiply -> {
+                        (numberOne * numberTwo).toString().replace('.',',')
+                    }
+                    OperationType.Subtraction -> {
+                        (numberOne - numberTwo).toString().replace('.',',')
+                    }
+                    null -> return@launch
+                }
+                if((result.replace(',','.').toDouble() - result.replace(',','.').split('.').getOrElse(0){""}.toDouble()) == 0.0){
+                    repo.insertOperation(operation = Operation(
+                        num1 = uiState.value.numberOne,
+                        num2 = uiState.value.numberTwo,
+                        result = result.split(',').getOrElse(0){""},
+                        operation = uiState.value.operationSymbol)
+                    )
+                    _uiState.update { it.copy(result = null, numberOne = result.split(',').getOrElse(0){""}, numberTwo = "", operation = null)}
                 } else {
-                _uiState.update { it.copy(result = null, numberOne = result.toString(), numberTwo = "", operation = null)}
+                    val decimal = result.split(',').getOrElse(1){""}
+                    val integer = result.split(',').getOrElse(0){""}
+                    val decimalCount = decimal.length
+                    if(decimalCount > 4){
+                        if(decimal.count{ it == '0'} > 4){
+                            repo.insertOperation(operation = Operation(
+                                num1 = uiState.value.numberOne,
+                                num2 = uiState.value.numberTwo,
+                                result = "$integer,${decimal.take(2)}",
+                                operation = uiState.value.operationSymbol)
+                            )
+                            _uiState.update { it.copy(result = null, numberOne = "$integer,${decimal.take(2)}", numberTwo = "", operation = null)}
+                        } else {
+                            repo.insertOperation(operation = Operation(
+                                num1 = uiState.value.numberOne,
+                                num2 = uiState.value.numberTwo,
+                                result = "$integer,$decimal",
+                                operation = uiState.value.operationSymbol)
+                            )
+                            _uiState.update { it.copy(result = null, numberOne = "$integer,$decimal", numberTwo = "", operation = null)}
+                        }
+                    } else {
+                        repo.insertOperation(operation = Operation(
+                            num1 = uiState.value.numberOne,
+                            num2 = uiState.value.numberTwo,
+                            result = "$integer,$decimal",
+                            operation = uiState.value.operationSymbol)
+                        )
+                        _uiState.update { it.copy(result = null, numberOne = "$integer,$decimal", numberTwo = "", operation = null)}
+                    }
                 }
             }
         }
@@ -139,17 +225,17 @@ class CalculatorViewModel : ViewModel() {
 
     private fun deleteExecute() {
         if(uiState.value.numberTwo.isNotBlank() && uiState.value.operation != null){
-            _uiState.update { it.copy(numberTwo = uiState.value.numberTwo.dropLast(1), result = null) }
+            _uiState.update { it.copy(numberTwo = uiState.value.numberTwo.dropLast(1), result = null, isTwoDeleted  = false) }
             printResult()
             return
         }
         if(uiState.value.numberTwo.isBlank() && uiState.value.operation != null){
-            _uiState.update { it.copy(operation = null, result = null)}
+            _uiState.update { it.copy(operation = null, result = null, isTwoDeleted  = true)}
             printResult()
             return
         }
         if(uiState.value.operation == null && uiState.value.numberOne.isNotBlank()){
-            _uiState.update { it.copy(numberOne = uiState.value.numberOne.dropLast(1), result = null) }
+            _uiState.update { it.copy(numberOne = uiState.value.numberOne.dropLast(1), result = null, isTwoDeleted  = false) }
             printResult()
             return
         }
@@ -160,6 +246,29 @@ class CalculatorViewModel : ViewModel() {
     }
 
     private fun clearExecute() {
-        _uiState.value = CalculatorUiState()
+        _uiState.update { it.copy(numberOne = "", numberTwo = "", operation = null, result = "", operationSymbol = "", isTwoDeleted = false, isShowingToast = false) }
+    }
+
+    fun inputValidation() {
+        println("1.sayı uzunluğu: ${uiState.value.numberOne.length}")
+        println("2.sayı uzunluğu: ${uiState.value.numberTwo.length}")
+        if(uiState.value.operation == null){
+            if(uiState.value.numberOne.length > 14){
+                _uiState.update { it.copy(isShowingToast = true) }
+            } else {
+                _uiState.update { it.copy(isShowingToast = false) }
+            }
+        } else {
+            if(uiState.value.numberTwo.length > 14){
+                _uiState.update { it.copy(isShowingToast = true) }
+            } else {
+                _uiState.update { it.copy(isShowingToast = false) }
+            }
+        }
+        println("Mesaj Gösterilsin mi?: ${uiState.value.isShowingToast}")
+    }
+
+    fun updateTabState(){
+        _uiState.update { it.copy(isHistoryTabOpen = !uiState.value.isHistoryTabOpen) }
     }
 }

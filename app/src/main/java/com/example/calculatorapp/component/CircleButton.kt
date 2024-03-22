@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.calculatorapp.CalculatorViewModel
 import com.example.calculatorapp.ui.theme.CalculatorAppTheme
 import com.example.calculatorapp.ui.theme.LightNumberColor
 import com.example.calculatorapp.ui.theme.LightWhiteButton
@@ -54,7 +56,7 @@ fun CircleButton(
     contentSize : TextUnit = 32.sp,
     onClick : () -> Unit = {}
 ) {
-
+    val viewModel : CalculatorViewModel = viewModel()
     Box(
         modifier = Modifier
             .clip(CircleShape)
@@ -62,6 +64,7 @@ fun CircleButton(
             .aspectRatio(1f)
             .background(color = background)
             .clickable {
+                viewModel.inputValidation()
                 onClick()
             },
         contentAlignment = Alignment.Center

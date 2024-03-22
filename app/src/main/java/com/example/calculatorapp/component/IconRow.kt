@@ -17,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calculatorapp.CalculatorUiState
+import com.example.calculatorapp.CalculatorViewModel
 import com.example.calculatorapp.OperationEvent
 import com.example.calculatorapp.R
 import com.example.calculatorapp.ui.theme.LightBackspaceColor
@@ -29,6 +31,7 @@ fun IconRow(
     onEvent: (OperationEvent) -> Unit = {},
     state : CalculatorUiState
 ){
+    val viewModel : CalculatorViewModel = viewModel()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -44,10 +47,13 @@ fun IconRow(
             Icon(
                 painter = painterResource(R.drawable.gecmis),
                 contentDescription = "history",
-                tint = MaterialTheme.colorScheme.surfaceTint,
+                tint = if(state.historyOperationList.isNotEmpty()) MaterialTheme.colorScheme.surfaceTint else (MaterialTheme.colorScheme.surfaceTint).copy(alpha = 0.3f),
                 modifier = Modifier
                     .size(iconSize)
-                    .clickable { /*TODO*/ }
+                    .clickable(enabled = state.historyOperationList.isNotEmpty()) {
+                        viewModel.updateTabState()
+                        onEvent(OperationEvent.OpenHistory)
+                    }
             )
             Icon(
                 painter = painterResource(R.drawable.cetvel),
@@ -69,6 +75,7 @@ fun IconRow(
         Box(modifier = Modifier.weight(0.3f), contentAlignment = Alignment.Center){
             IconButton(
                 onClick ={
+                        viewModel.inputValidation()
                         onEvent(OperationEvent.Delete)
                     },
                 enabled = state.numberOne.isNotBlank(),
